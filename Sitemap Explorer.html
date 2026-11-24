@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sitemap Explorer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#eef2ef;--surface:#fff;--ink:#16302b;--muted:#5d7570;--line:#d3ddd8;--accent:#0f766e;--hi:#fde68a;--bar:#7cc4b8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1b19;--surface:#162624;--ink:#e3efec;--muted:#93aaa5;--line:#2a403c;--accent:#5eead4;--hi:#5b4a10;--bar:#2f7f74}}
+:root[data-theme="dark"]{--bg:#0f1b19;--surface:#162624;--ink:#e3efec;--muted:#93aaa5;--line:#2a403c;--accent:#5eead4;--hi:#5b4a10;--bar:#2f7f74}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 "Schibsted Grotesk",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1;margin:0 0 6px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 22px;max-width:60ch}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+textarea{width:100%;height:130px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);color:var(--ink);font:13px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.drop.over{outline:2px dashed var(--accent)}
+.linkin{flex:1 1 260px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.steps{margin:0 0 12px;padding:10px 12px 10px 32px;background:var(--hi);border-radius:8px;font-size:14px}
+.steps li+li{margin-top:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button,.btn{font:500 14px inherit;font-family:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.primary,:root:not([data-theme="light"]) button.primary{color:#04201c}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:13px;color:var(--muted)}
+.err{color:#b42318;margin-top:8px;font-size:14px}
+:root[data-theme="dark"] .err{color:#fda29b}
+#out{margin-top:22px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat b{display:block;font-size:24px;line-height:1.2}
+.stat span{color:var(--muted);font-size:13px}
+.sections h2,.explore h2{font-size:17px;margin:0 0 10px}
+.sec{display:grid;grid-template-columns:130px 1fr 52px;gap:10px;align-items:center;font-size:14px;padding:3px 0;cursor:pointer;border:0;background:none;width:100%;text-align:left;color:var(--ink)}
+.sec .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec .b{height:10px;background:var(--bar);border-radius:3px}
+.sec .n{text-align:right;color:var(--muted)}
+.sec:hover .t{color:var(--accent)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 10px}
+.bar input[type=search],.bar select{flex:1 1 220px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
+.bar select{flex:0 0 auto}
+.seg{display:flex}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:8px 0 0 8px}
+.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.seg button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tree{padding:8px 6px}
+details{margin-left:14px}
+.tree>details{margin-left:0}
+summary{cursor:pointer;padding:3px 4px;border-radius:6px;list-style-position:inside}
+summary:hover,.leaf:hover{background:var(--bg)}
+.cnt{color:var(--muted);font-size:12px;margin-left:6px}
+.leaf{display:flex;gap:10px;align-items:baseline;margin-left:14px;padding:3px 4px;border-radius:6px;flex-wrap:wrap}
+.leaf a{color:var(--accent);text-decoration:none;word-break:break-all}
+.leaf a:hover{text-decoration:underline}
+.meta{color:var(--muted);font-size:12px;white-space:nowrap}
+mark{background:var(--hi);color:inherit;border-radius:2px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;cursor:pointer;white-space:nowrap}
+td.u{word-break:break-all;min-width:240px}
+td.u a{color:var(--accent);text-decoration:none}
+.empty{padding:18px;color:var(--muted)}
+.leaf details.im{margin-left:0}
+.im[open]{flex-basis:100%}
+.im summary{display:inline-block;cursor:pointer;color:var(--muted);font-size:12px}
+.im ul{margin:4px 0 6px;padding-left:22px;font-size:13px}
+.im li{margin:1px 0}
+.kind{display:inline-block;background:var(--hi);padding:1px 8px;border-radius:99px;font-size:13px;margin-left:8px;vertical-align:middle}
+</style>
+</head>
+<body>
+<main>
+<h1>Sitemap Explorer</h1>
+<p class="sub">Paste a sitemap.xml or drop the file here. You get a clean map of the site: sections, folders, and pages, without the XML noise.</p>
+
+<div class="box drop" id="drop">
+  <div class="row" style="margin:0 0 12px">
+    <input type="url" id="link" value="https://www.cobblestonesoftware.com/sitemap.xml" placeholder="https://example.com/sitemap.xml" aria-label="Sitemap link" class="linkin">
+    <button id="open">Open sitemap</button>
+  </div>
+  <ol class="steps" id="steps" hidden>
+    <li>The sitemap opened in a new tab. Select everything there (Ctrl/Cmd + A) and copy it.</li>
+    <li>Come back here and paste it below. It loads on its own.</li>
+  </ol>
+  <textarea id="src" placeholder="Paste sitemap XML here…" aria-label="Sitemap XML"></textarea>
+  <div class="row">
+    <button class="primary" id="go">Explore sitemap</button>
+    <label class="btn">Choose file<input type="file" id="file" accept=".xml,text/xml,application/xml" hidden></label>
+    <button id="paste">Paste from clipboard</button>
+    <button id="sample">Try a sample</button>
+  </div>
+  <p class="hint" style="margin:10px 0 0">Enter a sitemap link, open it, copy what you see, and paste it here. This page can’t fetch other sites itself.</p>
+  <div class="err" id="err" role="alert"></div>
+</div>
+
+<div id="out" hidden>
+  <div class="stats" id="stats"></div>
+  <div class="box sections" id="secs"></div>
+  <div class="explore">
+    <div class="bar">
+      <input type="search" id="q" placeholder="Filter by title or URL" aria-label="Filter pages">
+      <select id="srt" aria-label="Sort"><option value="az">A–Z</option><option value="new">Newest first</option><option value="old">Oldest first</option></select>
+      <div class="seg" role="group" aria-label="View"><button id="vTree" aria-pressed="true">Folders</button><button id="vList" aria-pressed="false">List</button></div>
+      <button id="copy">Copy visible URLs</button>
+    </div>
+    <div class="box tree" id="view"></div>
+  </div>
+</div>
+</main>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var E=[],kind='urlset',view='tree',q='',sec='',sortKey='loc',sortDir=1,tsort='az';
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+function hl(s){var t=esc(s);if(!q)return t;var i=s.toLowerCase().indexOf(q);if(i<0)return t;return esc(s.slice(0,i))+'<mark>'+esc(s.slice(i,i+q.length))+'</mark>'+esc(s.slice(i+q.length))}
+function kids(el,n){var o=[];for(var c=el.firstElementChild;c;c=c.nextElementSibling)if(c.localName===n)o.push(c);return o}
+function txt(el,n){var c=kids(el,n)[0];return c?c.textContent.trim():''}
+function pretty(s){var l=s.length?s[s.length-1]:'';try{l=decodeURIComponent(l)}catch(e){}l=l.replace(/[-_+]+/g,' ').trim();return l?l.charAt(0).toUpperCase()+l.slice(1):'Home'}
+function parse(text){
+  var d=new DOMParser().parseFromString(text.trim(),'application/xml');
+  if(d.querySelector('parsererror'))throw new Error('That doesn’t look like valid XML. Check that you copied the whole file.');
+  var r=d.documentElement.localName;
+  if(r!=='urlset'&&r!=='sitemapindex')throw new Error('This XML isn’t a sitemap. Expected a urlset or sitemapindex at the top.');
+  kind=r==='urlset'?'urlset':'index';
+  var nodes=d.getElementsByTagNameNS('*',r==='urlset'?'url':'sitemap'),out=[];
+  for(var i=0;i<nodes.length;i++){
+    var n=nodes[i],loc=txt(n,'loc');if(!loc)continue;
+    var u;try{u=new URL(loc)}catch(e){u=null}
+    var segs=u?u.pathname.split('/').filter(Boolean):[loc],seen={},imgs=[];
+    kids(n,'image').forEach(function(im){var iu=txt(im,'loc');if(iu&&!seen[iu]){seen[iu]=1;imgs.push({u:iu,c:txt(im,'caption')||txt(im,'title')})}});
+    var ts=Date.parse(txt(n,'lastmod'));
+    out.push({loc:loc,host:u?u.host:'',segs:segs,t:pretty(segs),imgs:imgs,ts:isNaN(ts)?0:ts,lastmod:txt(n,'lastmod'),freq:txt(n,'changefreq'),prio:txt(n,'priority')});
+  }
+  if(!out.length)throw new Error('No pages found in this sitemap.');
+  return out;
+}
+function fmt(d){if(!d)return '';var t=Date.parse(d);return isNaN(t)?d:new Date(t).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})}
+function visible(){return E.filter(function(e){return(!q||e.loc.toLowerCase().indexOf(q)>-1||e.t.toLowerCase().indexOf(q)>-1)&&(!sec||(e.segs[0]||'/')===sec)})}
+function stats(){
+  var what=kind==='index'?'child sitemaps':'pages';
+  var secs={};E.forEach(function(e){var k=e.segs[0]||'/';secs[k]=(secs[k]||0)+1});
+  var dates=E.filter(function(e){return e.lastmod&&!isNaN(Date.parse(e.lastmod))}).map(function(e){return Date.parse(e.lastmod)}).sort(function(a,b){return a-b});
+  var imgSet={};E.forEach(function(e){e.imgs.forEach(function(i){imgSet[i.u]=1})});
+  var hosts={};E.forEach(function(e){hosts[e.host]=1});
+  var cards=[[E.length.toLocaleString(),what],[Object.keys(secs).length,'top-level sections'],[Object.keys(imgSet).length.toLocaleString(),'unique images (tucked away)']];
+  if(dates.length){cards.push([fmt(new Date(dates[dates.length-1]).toISOString()),'most recent update']);cards.push([fmt(new Date(dates[0]).toISOString()),'oldest update'])}
+  cards.push([Object.keys(hosts).length,Object.keys(hosts).length===1?'domain: '+Object.keys(hosts)[0]:'domains']);
+  $('stats').innerHTML=cards.map(function(c){return '<div class="stat"><b>'+esc(c[0])+'</b><span>'+esc(c[1])+'</span></div>'}).join('');
+  var arr=Object.keys(secs).map(function(k){return[k,secs[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,12),max=arr[0][1];
+  $('secs').innerHTML='<h2>Biggest sections <span class="hint">(select one to filter)</span></h2>'+arr.map(function(a){return '<button class="sec" data-s="'+esc(a[0])+'"><span class="t">/'+esc(a[0]==='/'?'':a[0])+'</span><span class="b" style="width:'+Math.max(3,a[1]/max*100)+'%"></span><span class="n">'+a[1]+'</span></button>'}).join('');
+}
+function build(list){
+  var root={name:'',kids:{},n:0,e:null};
+  list.forEach(function(e){var cur=root,sg=e.segs.length?e.segs:['/'];cur.n++;sg.forEach(function(s,i){cur=cur.kids[s]||(cur.kids[s]={name:s,kids:{},n:0,e:null});cur.n++;cur.mx=Math.max(cur.mx||0,e.ts);cur.mn=Math.min(cur.mn===undefined?1e15:cur.mn,e.ts||1e15);if(i===sg.length-1)cur.e=e})});
+  return root;
+}
+function leaf(e){
+  var im=e.imgs.length?'<details class="im"><summary>'+e.imgs.length+(e.imgs.length>1?' images':' image')+'</summary><ul>'+e.imgs.map(function(i){return '<li><a href="'+esc(i.u)+'" target="_blank" rel="noopener">'+esc(i.c||decodeURIComponent(i.u.split('/').pop()))+'</a></li>'}).join('')+'</ul></details>':'';
+  return '<div class="leaf"><a href="'+esc(e.loc)+'" target="_blank" rel="noopener">'+hl(e.t)+'</a>'+(e.lastmod?'<span class="meta">'+esc(fmt(e.lastmod))+'</span>':'')+im+'</div>';
+}
+function nodeHtml(n,open){
+  var ks=Object.keys(n.kids).sort(),h='';
+  if(tsort==='new')ks.sort(function(a,b){return n.kids[b].mx-n.kids[a].mx});else if(tsort==='old')ks.sort(function(a,b){return n.kids[a].mn-n.kids[b].mn});
+  ks.forEach(function(k){
+    var c=n.kids[k],has=Object.keys(c.kids).length;
+    var page=c.e?leaf(c.e):'';
+    if(!has){h+=page;return}
+    h+='<details'+(open?' open':'')+'><summary>/'+hl(c.name)+'<span class="cnt">'+c.n+'</span></summary>'+page+nodeHtml(c,open)+'</details>';
+  });
+  return h;
+}
+function render(){
+  var list=visible(),v=$('view');
+  if(!list.length){v.innerHTML='<div class="empty">No pages match. Clear the filter to see everything.</div>';return}
+  if(view==='tree'){
+    var open=!!(q||sec);
+    v.innerHTML=nodeHtml(build(list),open||list.length<40);
+  }else{
+    list=list.slice().sort(function(a,b){if(sortKey==='lastmod')return(a.ts-b.ts)*sortDir;if(sortKey==='imgs')return(a.imgs.length-b.imgs.length)*sortDir;var x=(sortKey==='loc'?a.t:a[sortKey])||'',y=(sortKey==='loc'?b.t:b[sortKey])||'';return(x<y?-1:x>y?1:0)*sortDir});
+    var cap=list.slice(0,500),hasFP=E.some(function(e){return e.freq||e.prio});
+    v.innerHTML='<div class="tbl"><table><thead><tr><th data-k="loc">Page</th><th data-k="lastmod">Updated</th><th data-k="imgs">Images</th>'+(hasFP?'<th data-k="freq">Frequency</th><th data-k="prio">Priority</th>':'')+'</tr></thead><tbody>'+
+    cap.map(function(e){return '<tr><td class="u"><a href="'+esc(e.loc)+'" target="_blank" rel="noopener">'+hl(e.t)+'</a><div class="meta" style="white-space:normal">'+esc(e.loc.replace(/^https?:\/\/[^/]+/,'')||'/')+'</div></td><td>'+esc(fmt(e.lastmod))+'</td><td>'+(e.imgs.length||'')+'</td>'+(hasFP?'<td>'+esc(e.freq)+'</td><td>'+esc(e.prio)+'</td>':'')+'</tr>'}).join('')+'</tbody></table></div>'+
+    (list.length>cap.length?'<div class="empty">Showing the first 500 of '+list.length.toLocaleString()+'. Filter to narrow down.</div>':'');
+  }
+}
+function load(text){
+  $('err').textContent='';
+  try{E=parse(text)}catch(e){$('err').textContent=e.message;return}
+  q='';sec='';$('q').value='';$('out').hidden=false;stats();render();
+  $('out').scrollIntoView({behavior:'smooth'});
+}
+$('go').onclick=function(){var t=$('src').value;if(!t.trim()){$('err').textContent='Paste some sitemap XML first, or choose a file.';return}load(t)};
+$('file').onchange=function(){var f=this.files[0];if(!f)return;f.text().then(function(t){$('src').value=t;load(t)})};
+$('sample').onclick=function(){
+  var p=['blog/contract-management-kpis','blog/clm-software-cost-reduction','blog/nursing-home-contract-management','press-room/guide-on-contract-reminder-benefits','press-room/software-showcases-customer-success-stories','events/naco-2025','events/cle-webinar-dec-2024','company/careers','industries/marketing-and-advertising-contract-management','resources/contract-management-tracking-spreadsheet'];
+  var x='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'+p.map(function(s,i){return '<url><loc>https://www.example.com/'+s+'</loc><image:image><image:loc>https://www.example.com/hubfs/logo.svg</image:loc><image:caption>Logo</image:caption></image:image><image:image><image:loc>https://www.example.com/hubfs/'+s.split('/')[1]+'.jpg</image:loc></image:image><lastmod>2026-'+('0'+(1+i%11)).slice(-2)+'-'+('0'+(3+i)).slice(-2)+'</lastmod></url>'}).join('')+'</urlset>';
+  $('src').value=x;load(x);
+};
+$('q').oninput=function(){q=this.value.trim().toLowerCase();render()};
+$('srt').onchange=function(){tsort=this.value;sortKey=tsort==='az'?'loc':'lastmod';sortDir=tsort==='new'?-1:1;render()};
+$('secs').onclick=function(e){var b=e.target.closest('.sec');if(!b)return;sec=sec===b.dataset.s?'':b.dataset.s;render()};
+$('vTree').onclick=$('vList').onclick=function(){view=this.id==='vTree'?'tree':'list';$('vTree').setAttribute('aria-pressed',view==='tree');$('vList').setAttribute('aria-pressed',view==='list');render()};
+$('view').onclick=function(e){var h=e.target.closest('th');if(!h)return;var k=h.dataset.k;sortDir=sortKey===k?-sortDir:1;sortKey=k;render()};
+$('copy').onclick=function(){var t=visible().map(function(e){return e.loc}).join('\n'),b=this;
+  function done(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy visible URLs'},1400)}
+  try{navigator.clipboard.writeText(t).then(done,function(){})}catch(e){}};
+function openLink(){
+  var v=$('link').value.trim();$('err').textContent='';
+  if(!v){$('err').textContent='Enter a sitemap link first, for example https://example.com/sitemap.xml.';return}
+  if(!/^https?:\/\//i.test(v))v='https://'+v;
+  try{new URL(v)}catch(e){$('err').textContent='That link isn’t valid. Check it and try again.';return}
+  try{window.open(v,'_blank','noopener')}catch(e){}
+  $('steps').hidden=false;$('src').focus();
+}
+$('open').onclick=openLink;
+$('link').onkeydown=function(e){if(e.key==='Enter')openLink()};
+$('paste').onclick=function(){
+  if(!navigator.clipboard||!navigator.clipboard.readText){$('err').textContent='Clipboard access isn’t available here. Paste into the box with Ctrl/Cmd + V.';return}
+  navigator.clipboard.readText().then(function(t){if(!t.trim()){$('err').textContent='Your clipboard is empty. Copy the sitemap first.';return}$('src').value=t;load(t)},function(){$('err').textContent='Couldn’t read the clipboard. Paste into the box with Ctrl/Cmd + V.'});
+};
+$('src').addEventListener('paste',function(){var t=this;setTimeout(function(){if(t.value.trim().charAt(0)==='<')load(t.value)},0)});
+var dz=$('drop');
+['dragover','dragenter'].forEach(function(n){dz.addEventListener(n,function(e){e.preventDefault();dz.classList.add('over')})});
+['dragleave','drop'].forEach(function(n){dz.addEventListener(n,function(e){e.preventDefault();dz.classList.remove('over')})});
+dz.addEventListener('drop',function(e){var f=e.dataTransfer.files[0];if(f)f.text().then(function(t){$('src').value=t;load(t)})});
+})();
+</script>
+</body>
+</html>
