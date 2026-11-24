@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sitemap Explorer</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap">
 <style>
 :root{--bg:#eef2ef;--surface:#fff;--ink:#16302b;--muted:#5d7570;--line:#d3ddd8;--accent:#0f766e;--hi:#fde68a;--bar:#7cc4b8;
@@ -67,6 +68,7 @@ th{color:var(--muted);font-weight:500;cursor:pointer;white-space:nowrap}
 td.u{word-break:break-all;min-width:240px}
 td.u a{color:var(--accent);text-decoration:none}
 .empty{padding:18px;color:var(--muted)}
+[hidden]{display:none!important}
 .leaf details.im{margin-left:0}
 .im[open]{flex-basis:100%}
 .im summary{display:inline-block;cursor:pointer;color:var(--muted);font-size:12px}
@@ -81,14 +83,7 @@ td.u a{color:var(--accent);text-decoration:none}
 <p class="sub">Paste a sitemap.xml or drop the file here. You get a clean map of the site: sections, folders, and pages, without the XML noise.</p>
 
 <div class="box drop" id="drop">
-  <div class="row" style="margin:0 0 12px">
-    <input type="url" id="link" value="https://www.cobblestonesoftware.com/sitemap.xml" placeholder="https://example.com/sitemap.xml" aria-label="Sitemap link" class="linkin">
-    <button id="open">Open sitemap</button>
-  </div>
-  <ol class="steps" id="steps" hidden>
-    <li>The sitemap opened in a new tab. Select everything there (Ctrl/Cmd + A) and copy it.</li>
-    <li>Come back here and paste it below. It loads on its own.</li>
-  </ol>
+  
   <textarea id="src" placeholder="Paste sitemap XML here…" aria-label="Sitemap XML"></textarea>
   <div class="row">
     <button class="primary" id="go">Explore sitemap</button>
@@ -96,7 +91,7 @@ td.u a{color:var(--accent);text-decoration:none}
     <button id="paste">Paste from clipboard</button>
     <button id="sample">Try a sample</button>
   </div>
-  <p class="hint" style="margin:10px 0 0">Enter a sitemap link, open it, copy what you see, and paste it here. This page can’t fetch other sites itself.</p>
+  <p class="hint" style="margin:10px 0 0">Paste the contents of a sitemap.xml, or drop the file onto this box.</p>
   <div class="err" id="err" role="alert"></div>
 </div>
 
@@ -110,6 +105,7 @@ td.u a{color:var(--accent);text-decoration:none}
       <div class="seg" role="group" aria-label="View"><button id="vTree" aria-pressed="true">Folders</button><button id="vList" aria-pressed="false">List</button></div>
       <button id="copy">Copy visible URLs</button>
     </div>
+    <div class="row" id="exp" hidden style="margin:0 0 10px"><span class="hint">Export what’s shown:</span><button id="xl" class="primary">Excel (a tab per section)</button><button id="cp">Pages CSV</button><button id="cs">Sections CSV</button><span class="hint" id="xs" role="status"></span></div>
     <div class="box tree" id="view"></div>
   </div>
 </div>
@@ -211,16 +207,82 @@ $('view').onclick=function(e){var h=e.target.closest('th');if(!h)return;var k=h.
 $('copy').onclick=function(){var t=visible().map(function(e){return e.loc}).join('\n'),b=this;
   function done(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy visible URLs'},1400)}
   try{navigator.clipboard.writeText(t).then(done,function(){})}catch(e){}};
-function openLink(){
-  var v=$('link').value.trim();$('err').textContent='';
-  if(!v){$('err').textContent='Enter a sitemap link first, for example https://example.com/sitemap.xml.';return}
-  if(!/^https?:\/\//i.test(v))v='https://'+v;
-  try{new URL(v)}catch(e){$('err').textContent='That link isn’t valid. Check it and try again.';return}
-  try{window.open(v,'_blank','noopener')}catch(e){}
-  $('steps').hidden=false;$('src').focus();
+var dl=null;
+function dataset(){
+  var L=visible().slice().sort(function(a,b){return a.loc<b.loc?-1:a.loc>b.loc?1:0}),fp=L.some(function(e){return e.freq||e.prio});
+  var pages=[['Title','URL','Section','Path','Depth','Last updated','Images'].concat(fp?['Change frequency','Priority']:[])],S={};
+  L.forEach(function(e){
+    var k=e.segs[0]||'/',s=S[k]||(S[k]={n:0,sub:{},mx:0,mn:0});
+    pages.push([e.t,e.loc,k,e.loc.replace(/^https?:\/\/[^/]+/,'')||'/',e.segs.length,e.lastmod,e.imgs.length].concat(fp?[e.freq,e.prio]:[]));
+    s.n++;if(e.segs.length>2)s.sub[e.segs[1]]=1;
+    if(e.ts){s.mx=Math.max(s.mx,e.ts);s.mn=s.mn?Math.min(s.mn,e.ts):e.ts}
+  });
+  var d=function(t){return t?new Date(t).toISOString().slice(0,10):''};
+  var secs=[['Section','Pages','Share of pages (%)','Subsections','Newest update','Oldest update']];
+  Object.keys(S).sort(function(a,b){return S[b].n-S[a].n}).forEach(function(k){var s=S[k];secs.push([k==='/'?'/':'/'+k,s.n,Math.round(s.n/L.length*1000)/10,Object.keys(s.sub).length,d(s.mx),d(s.mn)])});
+  return{pages:pages,secs:secs};
 }
-$('open').onclick=openLink;
-$('link').onkeydown=function(e){if(e.key==='Enter')openLink()};
+function csv(a){return '\ufeff'+a.map(function(r){return r.map(function(c){c=String(c==null?'':c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(',')}).join('\r\n')}
+function out(name,data){
+  var s=$('xs');s.textContent='';if(!dl)return;
+  dl.save({filename:name,data:data}).then(function(){s.textContent='Saved '+name},function(e){if(e&&e.code==='declined')return;s.textContent='Couldn’t save: '+((e&&e.message)||'try again')});
+}
+var lastSt='',dup=1;
+function fname(kind,ext){
+  var h=((E[0]&&E[0].host)||'sitemap').replace(/^www\./,'').replace(/[^a-z0-9.-]/gi,'-'),d=new Date(),p=function(n){return('0'+n).slice(-2)};
+  var st=d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+  if(st===lastSt)st+='-'+(++dup);else{lastSt=st;dup=1}
+  var sc=sec?'-'+sec.replace(/[^a-z0-9-]/gi,'-'):(q?'-filtered':'');
+  return h+'-sitemap-'+kind+sc+'-'+st+'.'+ext;
+}
+function sheetName(s,used){
+  var b=(s==='/'?'Home':s).replace(/[\[\]:*?\/\\']/g,'-').slice(0,26)||'Section',n=b,i=1;
+  while(used[n.toLowerCase()])n=b+'-'+(++i);
+  used[n.toLowerCase()]=1;return n;
+}
+function mk(rows,widths,urlCol,dateCols){
+  var ws=XLSX.utils.aoa_to_sheet(rows,{cellDates:true}),r;
+  for(r=1;r<rows.length;r++){
+    if(urlCol>-1){var u=ws[XLSX.utils.encode_cell({r:r,c:urlCol})];if(u&&u.v)u.l={Target:String(u.v)}}
+    dateCols.forEach(function(c){var x=ws[XLSX.utils.encode_cell({r:r,c:c})];if(x&&x.t==='d')x.z='yyyy-mm-dd'});
+  }
+  ws['!cols']=widths.map(function(w){return{wch:w}});
+  ws['!autofilter']={ref:ws['!ref']};
+  return ws;
+}
+$('xl').onclick=function(){
+  if(typeof XLSX==='undefined'){$('xs').textContent='The Excel library didn’t load. Use the CSV buttons instead.';return}
+  var L=visible().slice().sort(function(a,b){return a.loc<b.loc?-1:a.loc>b.loc?1:0});
+  if(!L.length){$('xs').textContent='Nothing to export. Clear the filter first.';return}
+  var fp=L.some(function(e){return e.freq||e.prio}),by={};
+  L.forEach(function(e){var k=e.segs[0]||'/';(by[k]=by[k]||[]).push(e)});
+  var keys=Object.keys(by).sort(function(a,b){return by[b].length-by[a].length}),rest=keys.slice(24);
+  var tabs=keys.slice(0,24).map(function(k){return{k:k,label:k,rows:by[k]}});
+  if(rest.length){var o=[];rest.forEach(function(k){o=o.concat(by[k])});tabs.push({k:'Other',label:'Other ('+rest.length+' small sections)',rows:o,other:true})}
+  var used={overview:1,'all pages':1};
+  tabs.forEach(function(t){t.sheet=sheetName(t.k,used)});
+  function sheet(rows,withSec){
+    var base=1+(withSec?1:0),head=['Title'].concat(withSec?['Section']:[],['Subfolder','Last updated','Images','URL'],fp?['Change frequency','Priority']:[]);
+    var data=[head].concat(rows.map(function(e){return[e.t].concat(withSec?[e.segs[0]||'/']:[],[e.segs.length>2?e.segs[1]:'',e.ts?new Date(e.ts):'',e.imgs.length||'',e.loc],fp?[e.freq,e.prio]:[])}));
+    return mk(data,[55].concat(withSec?[18]:[],[22,13,8,70],fp?[14,9]:[]),base+3,[base+1]);
+  }
+  var ov=[['Section','Pages','Share of pages (%)','Subfolders','Newest update','Oldest update','Tab']];
+  tabs.forEach(function(t){
+    var mx=0,mn=0,sub={};
+    t.rows.forEach(function(e){if(e.ts){mx=Math.max(mx,e.ts);mn=mn?Math.min(mn,e.ts):e.ts}if(e.segs.length>2)sub[e.segs[0]+'/'+e.segs[1]]=1});
+    ov.push([t.k==='/'?'Home (/)':t.other?t.label:'/'+t.label,t.rows.length,Math.round(t.rows.length/L.length*1000)/10,Object.keys(sub).length,mx?new Date(mx):'',mn?new Date(mn):'',t.sheet]);
+  });
+  ov.push(['All pages',L.length,100,'','','','All pages']);
+  var wb=XLSX.utils.book_new(),wo=mk(ov,[34,8,18,11,14,14,26],-1,[4,5]),r;
+  for(r=1;r<ov.length;r++){var c=wo[XLSX.utils.encode_cell({r:r,c:6})];if(c)c.l={Target:"#'"+ov[r][6]+"'!A1"}}
+  XLSX.utils.book_append_sheet(wb,wo,'Overview');
+  tabs.forEach(function(t){XLSX.utils.book_append_sheet(wb,sheet(t.rows,!!t.other),t.sheet)});
+  XLSX.utils.book_append_sheet(wb,sheet(L,true),'All pages');
+  out(fname('structure','xlsx'),XLSX.write(wb,{bookType:'xlsx',type:'array',cellDates:true}));
+};
+$('cp').onclick=function(){out(fname('pages','csv'),csv(dataset().pages))};
+$('cs').onclick=function(){out(fname('sections','csv'),csv(dataset().secs))};
+try{if(window.claude&&claude.use)claude.use('downloads').then(function(d){dl=d;$('exp').hidden=!d},function(){})}catch(e){}
 $('paste').onclick=function(){
   if(!navigator.clipboard||!navigator.clipboard.readText){$('err').textContent='Clipboard access isn’t available here. Paste into the box with Ctrl/Cmd + V.';return}
   navigator.clipboard.readText().then(function(t){if(!t.trim()){$('err').textContent='Your clipboard is empty. Copy the sitemap first.';return}$('src').value=t;load(t)},function(){$('err').textContent='Couldn’t read the clipboard. Paste into the box with Ctrl/Cmd + V.'});
